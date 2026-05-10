@@ -2,21 +2,41 @@ import torch
 import torch.nn.functional as F
 
 def collect_outputs(model, loader, device):
-    probs = []
-    labels = []
-    preds = []
+    model.eval()
+
+    probabilities = []
+    predictions = []
+    labels_list = []
 
     with torch.no_grad():
-        for x,y in loader:
-            x = x.to(device)
-            out = model(x)
-            p = F.softmax(out, dim=1).cpu()
-            probs.append(p)
-            preds.append(p.argmax(dim=1))
-            labels.append(y)
+        for images, labels in loader:
+            images = images.to(device)
 
-    probs = torch.cat(probs)
-    preds = torch.cat(preds)
-    labels = torch.cat(labels)
+            outputs = model(images)
 
-    return probs, preds, labels
+            probs = F.softmax(outputs, dim=1)
+
+            preds = probs.argmax(dim=1)
+
+            probabilities.append(probs.cpu())
+            predictions.append(preds.cpu())
+            labels_list.append(labels.cpu())
+
+    probabilities = torch.cat(probabilities)
+    predictions = torch.cat(predictions)
+    labels = torch.cat(labels_list)
+
+    return probabilities, predictions, labels
+
+
+def build_detection_dataset(probabilities, predictions, labels, threshold=0.8):
+    confidences = probabilities.max(dim=1)[0]
+
+    correct = predictions.eq(labels)
+
+    overconfident_errors = (
+        (confidences >= threshold) &
+        (~correct)
+    ).long()
+
+    return probabilities, overconfident_errors
