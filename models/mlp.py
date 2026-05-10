@@ -1,16 +1,20 @@
 import torch.nn as nn
 
 class MLP(nn.Module):
-    def __init__(self):
+    def __init__(self, input_dim=10):
         super().__init__()
-        self.net = nn.Sequential(
-            nn.Linear(10,64),
+
+        self.network = nn.Sequential(
+            nn.Linear(input_dim, 128),
             nn.ReLU(),
-            nn.Linear(64,32),
+            nn.Dropout(0.3),
+
+            nn.Linear(128, 64),
             nn.ReLU(),
-            nn.Linear(32,1),
-            nn.Sigmoid()
+            nn.Dropout(0.3),
+
+            nn.Linear(64, 1)
         )
 
-    def forward(self,x):
-        return self.net(x)
+    def forward(self, x):
+        return self.network(x).squeeze(1)
