@@ -1,21 +1,54 @@
 import torch
-from torch.utils.data import Dataset, DataLoader
-import numpy as np
+from torch.utils.data import DataLoader, random_split
+from torchvision import datasets, transforms
 
-class DummyDataset(Dataset):
-    def __init__(self, size=2000):
-        self.X = torch.randn(size, 3, 32, 32)
-        self.y = torch.randint(0, 10, (size,))
+def get_loaders(batch_size=64):
+    transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize(
+            (0.4914, 0.4822, 0.4465),
+            (0.2470, 0.2435, 0.2616)
+        )
+    ])
 
-    def __len__(self):
-        return len(self.X)
+    train_dataset = datasets.CIFAR10(
+        root="./data",
+        train=True,
+        download=True,
+        transform=transform
+    )
 
-    def __getitem__(self, idx):
-        return self.X[idx], self.y[idx]
+    test_dataset = datasets.CIFAR10(
+        root="./data",
+        train=False,
+        download=True,
+        transform=transform
+    )
 
-def get_loaders():
-    train = DummyDataset(2000)
-    test = DummyDataset(500)
-    train_loader = DataLoader(train, batch_size=64, shuffle=True)
-    test_loader = DataLoader(test, batch_size=64)
-    return train_loader, test_loader
+    train_size = int(0.8 * len(train_dataset))
+    val_size = len(train_dataset) - train_size
+
+    train_dataset, val_dataset = random_split(
+        train_dataset,
+        [train_size, val_size]
+    )
+
+    train_loader = DataLoader(
+        train_dataset,
+        batch_size=batch_size,
+        shuffle=True
+    )
+
+    val_loader = DataLoader(
+        val_dataset,
+        batch_size=batch_size,
+        shuffle=False
+    )
+
+    test_loader = DataLoader(
+        test_dataset,
+        batch_size=batch_size,
+        shuffle=False
+    )
+
+    return train_loader, val_loader, test_loader
